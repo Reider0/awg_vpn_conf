@@ -1,0 +1,71 @@
+services:
+
+  # ---------------- POSTGRES ----------------
+  postgres:
+    image: postgres:15
+    container_name: vpn_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vpn
+      POSTGRES_PASSWORD: vpnpass
+      POSTGRES_DB: vpndb
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./volumes/database:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ---------------- AMNEZIA WG (BACKEND) ----------------
+  wireguard:
+    build: ./wg_api
+    container_name: vpn_wireguard
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      SERVERPORT: 51820
+      INTERNAL_SUBNET: 10.13.13.0
+    volumes:
+      # Новый путь для Amnezia
+      - ./volumes/wireguard:/etc/amnezia/amneziawg
+      - /lib/modules:/lib/modules
+    ports:
+      - "51820:51820/udp"
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+  # ---------------- BOT (FRONTEND) ----------------
+  vpn_bot:
+    build: ./bot
+    container_name: vpn_bot
+    depends_on:
+      - postgres
+      - wireguard
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      ADMIN_ID: ${ADMIN_ID}
+      DATABASE_URL: postgres://vpn:vpnpass@postgres:5432/vpndb
+      GIT_REPO: ${GIT_REPO}
+      GIT_USERNAME: ${GIT_USERNAME}
+      GIT_TOKEN: ${GIT_TOKEN}
+    volumes:
+      - ./volumes:/volumes
+      - ./VERSION:/app/VERSION_FILE:ro
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
