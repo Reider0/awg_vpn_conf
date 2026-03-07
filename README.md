@@ -1,5 +1,5 @@
 
-# 🛡️ VPN Dashboard (WireGuard + Telegram Bot)
+# 🛡️ VPN Dashboard (AmneziaWG + Telegram Bot)
 
 Полноценная панель управления VPN-сервером внутри Telegram.
 Проект использует **AmneziaWG** (протокол WireGuard с продвинутой обфускацией) для обхода блокировок (DPI), упакован в Docker с современной микросервисной архитектурой.
