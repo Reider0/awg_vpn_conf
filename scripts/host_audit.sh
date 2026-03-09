@@ -161,7 +161,7 @@ docker exec vpn_db pg_isready -U vpn >/dev/null 2>&1
 [ -d "$APP_DIR/volumes/backups" ] && add_check CAT_STORAGE "Директория резервных копий" "ok" "Существует" || add_check CAT_STORAGE "Директория резервных копий" "warning" "Отсутствует"
 
 BACKUP_FILE="$APP_DIR/volumes/backups/backup_latest.tar.gz"
-if[ -f "$BACKUP_FILE" ]; then
+if [ -f "$BACKUP_FILE" ]; then
     AGE=$(find "$BACKUP_FILE" -mtime -2)
     [ -n "$AGE" ] && add_check CAT_STORAGE "Актуальность Бэкапа" "ok" "Свежий (< 48ч)" || add_check CAT_STORAGE "Актуальность Бэкапа" "warning" "Устарел (> 48ч)"
 else
@@ -181,9 +181,9 @@ ROOT_SSH=$(grep "^PermitRootLogin yes" /etc/ssh/sshd_config)[ -n "$ROOT_SSH" ] &
 
 UFW_STAT=$(ufw status 2>/dev/null | grep -i "active")
 IPT_STAT=$(iptables -L -n | grep "Chain INPUT" | wc -l)
-if[ -n "$UFW_STAT" ]; then
+if [ -n "$UFW_STAT" ]; then
     add_check CAT_SEC "Межсетевой экран (Firewall)" "ok" "UFW Активен"
-elif[ "$IPT_STAT" -gt 0 ]; then
+elif [ "$IPT_STAT" -gt 0 ]; then
     add_check CAT_SEC "Межсетевой экран (Firewall)" "ok" "Iptables настроен"
 else
     add_check CAT_SEC "Межсетевой экран (Firewall)" "warning" "Не обнаружен"
