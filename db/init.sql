@@ -1,21 +1,30 @@
--- Сначала удаляем старые таблицы, если они есть (чтобы избежать конфликтов при пересоздании)
 DROP TABLE IF EXISTS stats;
 DROP TABLE IF EXISTS devices;
+DROP TABLE IF EXISTS user_tg_links;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS settings;
+DROP TABLE IF EXISTS events_log;
 
--- 1. Таблица пользователей (ОСНОВНАЯ ДЛЯ БОТА)
--- Бот ищет UUID и Device именно здесь
+-- 1. Таблица пользователей
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
-    uuid TEXT NOT NULL UNIQUE,     -- Вот эта колонка, которой не хватало!
-    device TEXT,                   -- Сюда запишется hostname устройства
+    uuid TEXT NOT NULL UNIQUE,
+    device TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    expires_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     first_connected_at TIMESTAMP
 );
 
--- 2. Таблица статистики (на будущее)
--- Пока бот берет статистику напрямую через API WireGuard, но пусть таблица будет
+-- 1.5 Таблица привязок Telegram ID
+CREATE TABLE user_tg_links (
+    uuid TEXT REFERENCES users(uuid) ON DELETE CASCADE,
+    tg_id BIGINT,
+    UNIQUE(uuid, tg_id)
+);
+
+-- 2. Таблица статистики
 CREATE TABLE stats (
     id SERIAL PRIMARY KEY,
     user_uuid TEXT REFERENCES users(uuid) ON DELETE CASCADE,
@@ -24,7 +33,16 @@ CREATE TABLE stats (
     last_seen TIMESTAMP
 );
 
+-- 3. Настройки
 CREATE TABLE settings (
     key TEXT PRIMARY KEY,
     value TEXT
+);
+
+-- 4. Логи системы и безопасности
+CREATE TABLE events_log (
+    id SERIAL PRIMARY KEY,
+    timestamp TIMESTAMP DEFAULT NOW(),
+    event_type TEXT,
+    message TEXT
 );

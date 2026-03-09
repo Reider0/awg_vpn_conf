@@ -2,6 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Устанавливаем системные утилиты прямо в образ
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
@@ -10,9 +11,7 @@ RUN apt-get update && \
         postgresql-client && \
     rm -rf /var/lib/apt/lists/*
 
-# Настройка Git:
-# 1. safe.directory чтобы не ругался на права
-# 2. credential.helper пустой, чтобы не искал кэш
+# Настройка Git
 RUN git config --global --add safe.directory '*' && \
     git config --global credential.helper ""
 

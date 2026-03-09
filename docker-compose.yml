@@ -31,7 +31,6 @@ services:
       SERVERPORT: 51820
       INTERNAL_SUBNET: 10.13.13.0
     volumes:
-      # Новый путь для Amnezia
       - ./volumes/wireguard:/etc/amnezia/amneziawg
       - /lib/modules:/lib/modules
     ports:

@@ -10,17 +10,23 @@ APP_DIR=$(pwd)
 echo "🚀 Установка VPN Dashboard в: $APP_DIR"
 
 # 2. Установка Docker
-echo "📦 Проверка Docker..."
+echo "📦 Проверка и настройка Docker..."
+
+# Если докера нет - ставим
 if ! command -v docker &> /dev/null; then
+    echo "⬇️ Скачивание Docker..."
     curl -fsSL https://get.docker.com -o get-docker.sh
     sh get-docker.sh
     rm get-docker.sh
-else
-    echo "✅ Docker уже установлен."
 fi
 
-# Установка плагина (на всякий случай)
+# Установка плагина Compose
 apt-get update && apt-get install -y docker-compose-plugin git
+
+# ВАЖНО: Включаем автозапуск Docker при старте системы
+echo "🔌 Включение автозагрузки Docker..."
+systemctl enable docker
+systemctl start docker
 
 # 3. Настройка прав и папок
 echo "🔧 Настройка прав..."
@@ -31,23 +37,23 @@ mkdir -p "$APP_DIR/volumes/backups"
 mkdir -p "$APP_DIR/volumes/configs"
 mkdir -p "$APP_DIR/volumes/wireguard"
 mkdir -p "$APP_DIR/volumes/database"
+# shared_bin больше не создаем
 
-# --- ФИКС ВЕРСИИ ---
-# Сразу записываем текущую версию Git в файл, чтобы бот её видел
+# Фикс версии (Строго 7 символов)
 if [ -d ".git" ]; then
-    echo "📝 Записываем текущую версию проекта..."
-    git rev-parse --short HEAD > "$APP_DIR/volumes/VERSION"
+    git rev-parse HEAD | cut -c1-7 > "$APP_DIR/volumes/VERSION"
 else
-    echo "⚠️ Git репозиторий не найден, версия будет 'unknown'"
     echo "unknown" > "$APP_DIR/volumes/VERSION"
 fi
 
-# 4. Демон автообновлений
-echo "⚙️ Установка демона обновлений..."
+# 4. Настройка системного демона (Auto-Updater)
+echo "⚙️ Настройка демона автообновлений..."
 cat <<EOF > /etc/systemd/system/vpn-updater.service
 [Unit]
 Description=VPN Dashboard Auto-Updater Daemon
-After=network.target
+# Ждем, пока Docker полностью загрузится
+After=network-online.target docker.service
+Wants=network-online.target docker.service
 
 [Service]
 Type=simple
@@ -65,18 +71,15 @@ systemctl daemon-reload
 systemctl enable vpn-updater
 systemctl restart vpn-updater
 
-# 5. Генерация .env
+# 5. Генерация .env (если нет)
 if [ ! -f "$APP_DIR/.env" ]; then
-    echo "📝 Создаю .env..."
-    cat <<EOF > "$APP_DIR/.env"
-BOT_TOKEN=
-ADMIN_ID=
-# Для приватных репозиториев используйте формат:
-# https://USER:TOKEN@github.com/USER/REPO.git
-GIT_REPO=
-EOF
-    echo "⚠️ Файл .env создан. Заполните его!"
+    echo "📝 Создаю пустой .env..."
+    touch "$APP_DIR/.env"
 fi
 
-echo "✅ Установка завершена!"
-echo "👉 Заполните .env и запустите: docker compose up -d --build"
+# 6. Финальный запуск
+echo "🚀 Запуск контейнеров..."
+docker compose up -d --build
+
+echo "✅ УСТАНОВКА ЗАВЕРШЕНА!"
+echo "Docker настроен на автостарт. Бот запущен."
